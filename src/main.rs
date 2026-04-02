@@ -55,12 +55,7 @@ async fn main() {
             x: yaw.sin() * pitch.cos(),
             y: pitch.sin(),
             z: yaw.cos() * pitch.cos(),
-        }; /* 
-        let direction = Vec3 {
-        x: yaw.cos(),
-        y: pitch.sin(),
-        z: -yaw.sin(),
-        };*/
+        };
 
         if is_key_down(KeyCode::W) {
             camera.position += direction * SPEED * delta;
@@ -119,20 +114,23 @@ fn generate_cube_mesh(position: Vec3, material_offset: Vec2, atlas_texture: Text
     ];
 
     let face_1 = [
-        vec3(-0.5, 0.5, 0.5) + position,
-        vec3(0.5, 0.5, 0.5) + position,
-        vec3(0.5, -0.5, 0.5) + position,
-        vec3(-0.5, -0.5, 0.5) + position,
+        vec3(-0.5, 0.5, 0.5),
+        vec3(0.5, 0.5, 0.5),
+        vec3(0.5, -0.5, 0.5),
+        vec3(-0.5, -0.5, 0.5),
     ];
 
     let face_2 = [
-        vec3(0.5, 0.5, -0.5) + position,
-        vec3(0.5, 0.5, 0.5) + position,
-        vec3(0.5, -0.5, 0.5) + position,
-        vec3(0.5, -0.5, -0.5) + position,
+        vec3(0.5, 0.5, -0.5),
+        vec3(0.5, 0.5, 0.5),
+        vec3(0.5, -0.5, 0.5),
+        vec3(0.5, -0.5, -0.5),
     ];
 
-    let faces = vec![face_1, face_2];
+    let faces: Vec<[Vec3; 4]> = vec![face_1, face_2]
+        .iter()
+        .map(|face| face.map(|v| v + position))
+        .collect();
     let amount_of_faces = faces.len();
     Mesh {
         vertices: faces_to_vertices(faces, uvs),
