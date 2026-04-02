@@ -96,19 +96,19 @@ fn generate_cube_mesh(position: Vec3, material_offset: Vec2, atlas_texture: Text
 
     let uvs = [
         (
+            (material_offset.x * block_size + block_size) / width,
+            material_offset.y * block_size / height,
+        ),
+        (
             material_offset.x * block_size / width,
             material_offset.y * block_size / height,
         ),
         (
-            (material_offset.x * block_size + block_size) / width,
-            material_offset.y * block_size / height,
-        ),
-        (
-            (material_offset.x * block_size + block_size) / width,
+            material_offset.x * block_size / width,
             (material_offset.y * block_size + block_size) / height,
         ),
         (
-            material_offset.x * block_size / width,
+            (material_offset.x * block_size + block_size) / width,
             (material_offset.y * block_size + block_size) / height,
         ),
     ];
