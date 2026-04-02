@@ -4,7 +4,19 @@ use macroquad::prelude::*;
 
 const SPEED: f32 = 4.0;
 
-#[macroquad::main("Minecrap")]
+fn window_config() -> Conf {
+    Conf {
+        window_title: "Minecrap".to_string(),
+        platform: {
+            miniquad::conf::Platform {
+                swap_interval: Some(0),
+                ..Default::default()
+            }
+        },
+        ..Default::default()
+    }
+}
+#[macroquad::main(window_config())]
 async fn main() {
     set_fullscreen(true);
     show_mouse(false);
@@ -22,49 +34,7 @@ async fn main() {
     let mut yaw: f32 = 0.0;
     let mut pitch: f32 = 0.0;
 
-    let offset = vec2(30.0, 1.0);
-    let width = atlas_texture.width();
-    let height = atlas_texture.height();
-    let block_size = 16.0;
-
-    let mesh = Mesh {
-        vertices: vec![
-            Vertex::new(
-                -0.5,
-                0.5,
-                0.5,
-                offset.x * block_size / width,
-                offset.y * block_size / height,
-                WHITE,
-            ),
-            Vertex::new(
-                0.5,
-                0.5,
-                0.5,
-                (offset.x * block_size + block_size) / width,
-                offset.y * block_size / height,
-                WHITE,
-            ),
-            Vertex::new(
-                0.5,
-                -0.5,
-                0.5,
-                (offset.x * block_size + block_size) / width,
-                (offset.y * block_size + block_size) / height,
-                WHITE,
-            ),
-            Vertex::new(
-                -0.5,
-                -0.5,
-                0.5,
-                offset.x * block_size / width,
-                (offset.y * block_size + block_size) / height,
-                WHITE,
-            ),
-        ],
-        indices: vec![0, 1, 3, 1, 2, 3],
-        texture: Some(atlas_texture),
-    };
+    let mesh = generate_cube_mesh(vec3(0.0, 0.0, 3.0), vec2(30.0, 1.0), atlas_texture);
 
     loop {
         set_camera(&camera);
@@ -85,7 +55,12 @@ async fn main() {
             x: yaw.sin() * pitch.cos(),
             y: pitch.sin(),
             z: yaw.cos() * pitch.cos(),
-        };
+        }; /* 
+        let direction = Vec3 {
+        x: yaw.cos(),
+        y: pitch.sin(),
+        z: -yaw.sin(),
+        };*/
 
         if is_key_down(KeyCode::W) {
             camera.position += direction * SPEED * delta;
@@ -117,4 +92,82 @@ async fn main() {
         }
         next_frame().await
     }
+}
+
+fn generate_cube_mesh(position: Vec3, material_offset: Vec2, atlas_texture: Texture2D) -> Mesh {
+    let width = atlas_texture.width();
+    let height = atlas_texture.height();
+    let block_size = 16.0;
+
+    let uvs = [
+        (
+            material_offset.x * block_size / width,
+            material_offset.y * block_size / height,
+        ),
+        (
+            (material_offset.x * block_size + block_size) / width,
+            material_offset.y * block_size / height,
+        ),
+        (
+            (material_offset.x * block_size + block_size) / width,
+            (material_offset.y * block_size + block_size) / height,
+        ),
+        (
+            material_offset.x * block_size / width,
+            (material_offset.y * block_size + block_size) / height,
+        ),
+    ];
+
+    let face_1 = [
+        vec3(-0.5, 0.5, 0.5) + position,
+        vec3(0.5, 0.5, 0.5) + position,
+        vec3(0.5, -0.5, 0.5) + position,
+        vec3(-0.5, -0.5, 0.5) + position,
+    ];
+
+    let face_2 = [
+        vec3(0.5, 0.5, -0.5) + position,
+        vec3(0.5, 0.5, 0.5) + position,
+        vec3(0.5, -0.5, 0.5) + position,
+        vec3(0.5, -0.5, -0.5) + position,
+    ];
+
+    let faces = vec![face_1, face_2];
+    let amount_of_faces = faces.len();
+    Mesh {
+        vertices: faces_to_vertices(faces, uvs),
+        indices: generate_mesh_indices(amount_of_faces),
+        texture: Some(atlas_texture),
+    }
+}
+
+fn face_to_vertices(vertices: [Vec3; 4], uvs: [(f32, f32); 4]) -> Vec<Vertex> {
+    vertices
+        .iter()
+        .zip(uvs)
+        .map(|(v, uv)| Vertex::new(v.x, v.y, v.z, uv.0, uv.1, WHITE))
+        .collect()
+}
+
+fn faces_to_vertices(faces: Vec<[Vec3; 4]>, uvs: [(f32, f32); 4]) -> Vec<Vertex> {
+    faces
+        .iter()
+        .flat_map(|face| face_to_vertices(*face, uvs))
+        .collect()
+}
+
+fn generate_mesh_indices(amount_of_faces: usize) -> Vec<u16> {
+    let mut indices: Vec<u16> = Vec::with_capacity(amount_of_faces * 6);
+    for i in 0..amount_of_faces {
+        let offset = i as u16 * 4;
+        indices.extend_from_slice(&[
+            offset,
+            offset + 1,
+            offset + 2,
+            offset,
+            offset + 2,
+            offset + 3,
+        ]);
+    }
+    indices
 }
