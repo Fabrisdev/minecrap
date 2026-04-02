@@ -2,7 +2,7 @@ use std::f32::consts::PI;
 
 use macroquad::prelude::*;
 
-const SPEED: f32 = 4.0;
+const SPEED: f32 = 6.0;
 
 fn window_config() -> Conf {
     Conf {
@@ -24,6 +24,7 @@ async fn main() {
 
     let mut camera = Camera3D {
         up: vec3(0.0, 1.0, 0.0),
+        fovy: 90.0,
         position: Vec3::ZERO,
         ..Default::default()
     };
@@ -34,12 +35,15 @@ async fn main() {
     let mut yaw: f32 = 0.0;
     let mut pitch: f32 = 0.0;
 
-    let mesh = generate_cube_mesh(vec3(0.0, 0.0, 3.0), vec2(30.0, 1.0), atlas_texture);
+    let mesh = generate_cube_meshes(&atlas_texture);
 
     loop {
         set_camera(&camera);
         clear_background(BLACK);
-        draw_mesh(&mesh);
+        for m in &mesh {
+            draw_mesh(&m);
+        }
+
         let delta = get_frame_time();
         let mouse_delta = mouse_delta_position();
         yaw += mouse_delta.x;
@@ -81,7 +85,7 @@ async fn main() {
         camera.target = camera.position + direction;
         set_default_camera();
         let fps_counter = format!("{} FPS", get_fps());
-        draw_text(&fps_counter, 0.0, 25.0, 50.0, WHITE);
+        draw_text(&fps_counter, 0.0, 50.0, 100.0, WHITE);
         if is_key_pressed(KeyCode::Escape) {
             break;
         }
@@ -89,7 +93,7 @@ async fn main() {
     }
 }
 
-fn generate_cube_mesh(position: Vec3, material_offset: Vec2, atlas_texture: Texture2D) -> Mesh {
+fn generate_cube_mesh(position: Vec3, material_offset: Vec2, atlas_texture: &Texture2D) -> Mesh {
     let width = atlas_texture.width();
     let height = atlas_texture.height();
     let block_size = 16.0;
@@ -163,7 +167,7 @@ fn generate_cube_mesh(position: Vec3, material_offset: Vec2, atlas_texture: Text
     Mesh {
         vertices: faces_to_vertices(faces, uvs),
         indices: generate_mesh_indices(amount_of_faces),
-        texture: Some(atlas_texture),
+        texture: Some(atlas_texture.clone()),
     }
 }
 
@@ -196,4 +200,21 @@ fn generate_mesh_indices(amount_of_faces: usize) -> Vec<u16> {
         ]);
     }
     indices
+}
+
+fn generate_cube_meshes(atlas_texture: &Texture2D) -> Vec<Mesh> {
+    let mut meshes: Vec<Mesh> = Vec::with_capacity(16 * 16 * 16);
+    for x in 0..160 {
+        for y in 0..160 {
+            for z in 0..16 {
+                let position = vec3(x as f32, y as f32, z as f32);
+                meshes.push(generate_cube_mesh(
+                    position,
+                    vec2(x as f32, y as f32),
+                    atlas_texture,
+                ));
+            }
+        }
+    }
+    meshes
 }
