@@ -149,10 +149,10 @@ fn generate_cube_mesh(position: Vec3, material_offset: Vec2, atlas_texture: Text
     ];
 
     let face_6 = [
-        vec3(-0.5, -0.5, 0.5),
-        vec3(0.5, -0.5, 0.5),
-        vec3(0.5, -0.5, -0.5),
         vec3(-0.5, -0.5, -0.5),
+        vec3(0.5, -0.5, -0.5),
+        vec3(0.5, -0.5, 0.5),
+        vec3(-0.5, -0.5, 0.5),
     ];
 
     let faces: Vec<[Vec3; 4]> = vec![face_1, face_2, face_3, face_4, face_5, face_6]
