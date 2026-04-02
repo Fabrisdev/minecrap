@@ -40,9 +40,7 @@ async fn main() {
     loop {
         set_camera(&camera);
         clear_background(BLACK);
-        for m in &mesh {
-            draw_mesh(&m);
-        }
+        draw_mesh(&mesh);
 
         let delta = get_frame_time();
         let mouse_delta = mouse_delta_position();
@@ -202,19 +200,24 @@ fn generate_mesh_indices(amount_of_faces: usize) -> Vec<u16> {
     indices
 }
 
-fn generate_cube_meshes(atlas_texture: &Texture2D) -> Vec<Mesh> {
-    let mut meshes: Vec<Mesh> = Vec::with_capacity(16 * 16 * 16);
-    for x in 0..160 {
-        for y in 0..160 {
-            for z in 0..16 {
+fn generate_cube_meshes(atlas_texture: &Texture2D) -> Mesh {
+    let mut vertices = vec![];
+    let mut indices = vec![];
+    for x in 0..8 {
+        for y in 0..8 {
+            for z in 0..8 {
                 let position = vec3(x as f32, y as f32, z as f32);
-                meshes.push(generate_cube_mesh(
-                    position,
-                    vec2(x as f32, y as f32),
-                    atlas_texture,
-                ));
+                let cube_mesh = generate_cube_mesh(position, vec2(30.0, 1.0), atlas_texture);
+                let start = vertices.len() as u16;
+                vertices.extend(cube_mesh.vertices);
+
+                indices.extend(cube_mesh.indices.iter().map(|i| i + start));
             }
         }
     }
-    meshes
+    Mesh {
+        vertices,
+        indices,
+        texture: Some(atlas_texture.clone()),
+    }
 }
