@@ -3,8 +3,9 @@ use noise::NoiseFn;
 use noise::Perlin;
 use std::f32::consts::PI;
 
-const SPEED: f32 = 6.0;
+const SPEED: f32 = 15.0;
 const CHUNK_SIZE: usize = 16;
+const RENDER_DISTANCE: usize = 10;
 
 fn window_config() -> Conf {
     Conf {
@@ -37,9 +38,18 @@ async fn main() {
     let mut yaw: f32 = 0.0;
     let mut pitch: f32 = 0.0;
 
+    let mut meshes = vec![];
+    for x in 0..RENDER_DISTANCE {
+        for z in 0..RENDER_DISTANCE {
+            let chunk = generate_chunk();
+            let mesh = generate_chunk_mesh(&chunk, (x, z), &atlas_texture);
+            meshes.extend(mesh)
+        }
+    }
+
     let chunk = generate_chunk();
 
-    let meshes = generate_chunk_mesh(&chunk, &atlas_texture);
+    //let meshes = generate_chunk_mesh(&chunk, (0, 0), &atlas_texture);
 
     loop {
         set_camera(&camera);
@@ -206,13 +216,22 @@ fn generate_mesh_indices(amount_of_faces: usize) -> Vec<u16> {
     indices
 }
 
-fn generate_chunk_mesh(chunk: &Chunk, atlas_texture: &Texture2D) -> Vec<Mesh> {
+fn generate_chunk_mesh(
+    chunk: &Chunk,
+    offset: (usize, usize),
+    atlas_texture: &Texture2D,
+) -> Vec<Mesh> {
     let mut meshes = vec![];
 
     for (i, block) in chunk.blocks.iter().enumerate() {
         if let Some(material) = block.to_atlas_position() {
             let position = index_to_pos(i);
-            let mesh = generate_cube_mesh(position, material, atlas_texture);
+            let final_position = vec3(
+                position.x + (CHUNK_SIZE * offset.0) as f32,
+                position.y,
+                position.z + (CHUNK_SIZE * offset.1) as f32,
+            );
+            let mesh = generate_cube_mesh(final_position, material, atlas_texture);
             meshes.push(mesh)
         }
     }
