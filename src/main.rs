@@ -1,8 +1,10 @@
+use macroquad::prelude::*;
+use noise::NoiseFn;
+use noise::Perlin;
 use std::f32::consts::PI;
 
-use macroquad::prelude::*;
-
 const SPEED: f32 = 6.0;
+const CHUNK_SIZE: usize = 16;
 
 fn window_config() -> Conf {
     Conf {
@@ -35,12 +37,16 @@ async fn main() {
     let mut yaw: f32 = 0.0;
     let mut pitch: f32 = 0.0;
 
-    let mesh = generate_cube_meshes(&atlas_texture);
+    let chunk = generate_chunk();
+
+    let meshes = generate_chunk_mesh(&chunk, &atlas_texture);
 
     loop {
         set_camera(&camera);
         clear_background(BLACK);
-        draw_mesh(&mesh);
+        for mesh in &meshes {
+            draw_mesh(&mesh);
+        }
 
         let delta = get_frame_time();
         let mouse_delta = mouse_delta_position();
@@ -200,24 +206,61 @@ fn generate_mesh_indices(amount_of_faces: usize) -> Vec<u16> {
     indices
 }
 
-fn generate_cube_meshes(atlas_texture: &Texture2D) -> Mesh {
-    let mut vertices = vec![];
-    let mut indices = vec![];
-    for x in 0..8 {
-        for y in 0..8 {
-            for z in 0..8 {
-                let position = vec3(x as f32, y as f32, z as f32);
-                let cube_mesh = generate_cube_mesh(position, vec2(30.0, 1.0), atlas_texture);
-                let start = vertices.len() as u16;
-                vertices.extend(cube_mesh.vertices);
+fn generate_chunk_mesh(chunk: &Chunk, atlas_texture: &Texture2D) -> Vec<Mesh> {
+    let mut meshes = vec![];
 
-                indices.extend(cube_mesh.indices.iter().map(|i| i + start));
-            }
+    for (i, block) in chunk.blocks.iter().enumerate() {
+        if let Some(material) = block.to_atlas_position() {
+            let position = index_to_pos(i);
+            let mesh = generate_cube_mesh(position, material, atlas_texture);
+            meshes.push(mesh)
         }
     }
-    Mesh {
-        vertices,
-        indices,
-        texture: Some(atlas_texture.clone()),
+
+    meshes
+}
+
+#[derive(Clone, PartialEq, Debug)]
+enum BlockType {
+    AIR,
+    GRASS,
+}
+
+impl BlockType {
+    fn to_atlas_position(&self) -> Option<Vec2> {
+        match &self {
+            BlockType::AIR => None,
+            BlockType::GRASS => Some(vec2(3.0, 0.0)),
+        }
     }
+}
+
+#[derive(Debug)]
+struct Chunk {
+    blocks: Vec<BlockType>,
+}
+
+fn generate_chunk() -> Chunk {
+    let mut blocks = vec![BlockType::AIR; CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE];
+    let perlin = Perlin::new(1);
+    for x in 0..CHUNK_SIZE {
+        for z in 0..CHUNK_SIZE {
+            let h = perlin.get([x as f64 * 0.01, z as f64 * 0.01]);
+            let y = ((h + 1.0) / 2.0 * (CHUNK_SIZE - 1) as f64).floor();
+            let index = pos_to_index(x, y as usize, z);
+            blocks[index] = BlockType::GRASS;
+        }
+    }
+    Chunk { blocks }
+}
+
+fn pos_to_index(x: usize, y: usize, z: usize) -> usize {
+    x + y * CHUNK_SIZE + z * CHUNK_SIZE * CHUNK_SIZE
+}
+
+fn index_to_pos(i: usize) -> Vec3 {
+    let x = i % CHUNK_SIZE;
+    let y = (i / CHUNK_SIZE) % CHUNK_SIZE;
+    let z = i / (CHUNK_SIZE * CHUNK_SIZE);
+    vec3(x as f32, y as f32, z as f32)
 }
