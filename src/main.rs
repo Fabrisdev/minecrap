@@ -5,7 +5,7 @@ use std::f32::consts::PI;
 
 const SPEED: f32 = 15.0;
 const CHUNK_SIZE: usize = 16;
-const RENDER_DISTANCE: usize = 10;
+const RENDER_DISTANCE: usize = 12;
 
 fn window_config() -> Conf {
     Conf {
@@ -237,6 +237,7 @@ fn generate_chunk_mesh(
 enum BlockType {
     AIR,
     GRASS,
+    STONE,
 }
 
 impl BlockType {
@@ -244,6 +245,7 @@ impl BlockType {
         match &self {
             BlockType::AIR => None,
             BlockType::GRASS => Some(vec2(3.0, 0.0)),
+            BlockType::STONE => Some(vec2(19.0, 0.0)),
         }
     }
 }
