@@ -25,8 +25,10 @@ async fn main() {
     show_mouse(false);
     set_cursor_grab(true);
 
+    let up = vec3(0.0, 1.0, 0.0);
+
     let mut camera = Camera3D {
-        up: vec3(0.0, 1.0, 0.0),
+        up,
         fovy: 90.0,
         position: Vec3::ZERO,
         ..Default::default()
@@ -83,17 +85,13 @@ async fn main() {
             camera.position -= direction * SPEED * delta;
         }
 
-        let right = Vec3 {
-            x: direction.z,
-            y: 0.0,
-            z: -direction.x,
-        };
+        let right = direction.cross(up).normalize();
 
         if is_key_down(KeyCode::A) {
-            camera.position += right * SPEED * delta;
+            camera.position -= right * SPEED * delta;
         }
         if is_key_down(KeyCode::D) {
-            camera.position -= right * SPEED * delta;
+            camera.position += right * SPEED * delta;
         }
 
         camera.target = camera.position + direction;
