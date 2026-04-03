@@ -4,6 +4,7 @@ use noise::Perlin;
 use std::f32::consts::PI;
 
 const SPEED: f32 = 15.0;
+const RUN_BOOST: f32 = 3.0;
 const CHUNK_SIZE: usize = 16;
 const RENDER_DISTANCE: usize = 12;
 
@@ -110,21 +111,27 @@ async fn main() {
             z: yaw.cos() * pitch.cos(),
         };
 
+        let speed = if is_key_down(KeyCode::LeftControl) {
+            SPEED * RUN_BOOST
+        } else {
+            SPEED
+        };
+
         if is_key_down(KeyCode::W) {
-            camera.position += direction * SPEED * delta;
+            camera.position += direction * speed * delta;
         }
 
         if is_key_down(KeyCode::S) {
-            camera.position -= direction * SPEED * delta;
+            camera.position -= direction * speed * delta;
         }
 
         let right = direction.cross(up).normalize();
 
         if is_key_down(KeyCode::A) {
-            camera.position -= right * SPEED * delta;
+            camera.position -= right * speed * delta;
         }
         if is_key_down(KeyCode::D) {
-            camera.position += right * SPEED * delta;
+            camera.position += right * speed * delta;
         }
 
         camera.target = camera.position + direction;
