@@ -1,4 +1,3 @@
-use core::panic;
 use macroquad::prelude::*;
 use noise::NoiseFn;
 use noise::Perlin;
@@ -44,6 +43,9 @@ async fn main() {
     let atlas_quarter_texture =
         Texture2D::from_file_with_format(include_bytes!("assets/atlas_4x4.png"), None);
     atlas_quarter_texture.set_filter(FilterMode::Nearest);
+    let atlas_eighth_texture =
+        Texture2D::from_file_with_format(include_bytes!("assets/atlas_2x2.png"), None);
+    atlas_eighth_texture.set_filter(FilterMode::Nearest);
     let atlas_pixel_texture =
         Texture2D::from_file_with_format(include_bytes!("assets/atlas_1x1.png"), None);
     atlas_pixel_texture.set_filter(FilterMode::Nearest);
@@ -51,20 +53,44 @@ async fn main() {
     let mut yaw: f32 = 0.0;
     let mut pitch: f32 = 0.0;
 
+    struct WorldMesh {
+        position: Vec3,
+        meshes: Vec<Mesh>,
+    }
+
     let mut meshes = vec![];
     for x in 0..RENDER_DISTANCE {
         for z in 0..RENDER_DISTANCE {
             let chunk = generate_chunk((x, z));
             let mesh = generate_chunk_mesh(&chunk, (x, z), &atlas_texture);
-            meshes.extend(mesh)
+            meshes.push(WorldMesh {
+                meshes: mesh,
+                position: vec3((x * CHUNK_SIZE) as f32, 0.0, (z * CHUNK_SIZE) as f32),
+            })
         }
     }
 
     loop {
         set_camera(&camera);
         clear_background(BLACK);
-        for mesh in &meshes {
-            draw_mesh(&mesh);
+
+        for world_mesh in &mut meshes {
+            let distance = camera.position.distance(world_mesh.position);
+            let texture_to_use = if distance <= 32.0 {
+                &atlas_texture
+            } else if distance <= 64.0 {
+                &atlas_half_texture
+            } else if distance <= 128.0 {
+                &atlas_quarter_texture
+            } else if distance <= 256.0 {
+                &atlas_eighth_texture
+            } else {
+                &atlas_pixel_texture
+            };
+            for mesh in &mut world_mesh.meshes {
+                mesh.texture = Some(texture_to_use.clone());
+                draw_mesh(&mesh);
+            }
         }
 
         let delta = get_frame_time();
@@ -119,8 +145,8 @@ fn generate_cube_mesh(position: Vec3, material_offset: Vec2, atlas_texture: &Tex
         512.0 => 16.0,
         256.0 => 8.0,
         128.0 => 4.0,
-        32.0 => 1.0,
-        _ => panic!("Asset size not supported"),
+        64.0 => 2.0,
+        _ => 1.0,
     };
     let offset_x = material_offset.x * block_size;
     let offset_y = material_offset.y * block_size;
@@ -263,6 +289,7 @@ enum Quality {
     FULL,
     HALF,
     QUARTER,
+    EIGHTH,
     PIXEL,
 }
 
