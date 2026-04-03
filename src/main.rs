@@ -43,15 +43,11 @@ async fn main() {
     let mut meshes = vec![];
     for x in 0..RENDER_DISTANCE {
         for z in 0..RENDER_DISTANCE {
-            let chunk = generate_chunk();
+            let chunk = generate_chunk((x, z));
             let mesh = generate_chunk_mesh(&chunk, (x, z), &atlas_texture);
             meshes.extend(mesh)
         }
     }
-
-    let chunk = generate_chunk();
-
-    //let meshes = generate_chunk_mesh(&chunk, (0, 0), &atlas_texture);
 
     loop {
         set_camera(&camera);
@@ -257,12 +253,15 @@ struct Chunk {
     blocks: Vec<BlockType>,
 }
 
-fn generate_chunk() -> Chunk {
+fn generate_chunk(offset: (usize, usize)) -> Chunk {
+    let offset_x = (CHUNK_SIZE * offset.0) as f64;
+    let offset_z = (CHUNK_SIZE * offset.1) as f64;
     let mut blocks = vec![BlockType::AIR; CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE];
     let perlin = Perlin::new(1);
+    let scale = 0.04;
     for x in 0..CHUNK_SIZE {
         for z in 0..CHUNK_SIZE {
-            let h = perlin.get([x as f64 * 0.01, z as f64 * 0.01]);
+            let h = perlin.get([(x as f64 + offset_x) * scale, (z as f64 + offset_z) * scale]);
             let y = ((h + 1.0) / 2.0 * (CHUNK_SIZE - 1) as f64).floor();
             let index = pos_to_index(x, y as usize, z);
             blocks[index] = BlockType::GRASS;
