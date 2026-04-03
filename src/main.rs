@@ -1,3 +1,4 @@
+use core::panic;
 use macroquad::prelude::*;
 use noise::NoiseFn;
 use noise::Perlin;
@@ -19,6 +20,7 @@ fn window_config() -> Conf {
         ..Default::default()
     }
 }
+
 #[macroquad::main(window_config())]
 async fn main() {
     set_fullscreen(true);
@@ -36,6 +38,15 @@ async fn main() {
 
     let atlas_texture = Texture2D::from_file_with_format(include_bytes!("assets/atlas.png"), None);
     atlas_texture.set_filter(FilterMode::Nearest);
+    let atlas_half_texture =
+        Texture2D::from_file_with_format(include_bytes!("assets/atlas_8x8.png"), None);
+    atlas_half_texture.set_filter(FilterMode::Nearest);
+    let atlas_quarter_texture =
+        Texture2D::from_file_with_format(include_bytes!("assets/atlas_4x4.png"), None);
+    atlas_quarter_texture.set_filter(FilterMode::Nearest);
+    let atlas_pixel_texture =
+        Texture2D::from_file_with_format(include_bytes!("assets/atlas_1x1.png"), None);
+    atlas_pixel_texture.set_filter(FilterMode::Nearest);
 
     let mut yaw: f32 = 0.0;
     let mut pitch: f32 = 0.0;
@@ -104,24 +115,22 @@ async fn main() {
 fn generate_cube_mesh(position: Vec3, material_offset: Vec2, atlas_texture: &Texture2D) -> Mesh {
     let width = atlas_texture.width();
     let height = atlas_texture.height();
-    let block_size = 16.0;
-
+    let block_size = match width {
+        512.0 => 16.0,
+        256.0 => 8.0,
+        128.0 => 4.0,
+        32.0 => 1.0,
+        _ => panic!("Asset size not supported"),
+    };
+    let offset_x = material_offset.x * block_size;
+    let offset_y = material_offset.y * block_size;
     let uvs = [
+        ((offset_x + block_size) / width, offset_y / height),
+        (offset_x / width, offset_y / height),
+        (offset_x / width, (offset_y + block_size) / height),
         (
-            (material_offset.x * block_size + block_size) / width,
-            material_offset.y * block_size / height,
-        ),
-        (
-            material_offset.x * block_size / width,
-            material_offset.y * block_size / height,
-        ),
-        (
-            material_offset.x * block_size / width,
-            (material_offset.y * block_size + block_size) / height,
-        ),
-        (
-            (material_offset.x * block_size + block_size) / width,
-            (material_offset.y * block_size + block_size) / height,
+            (offset_x + block_size) / width,
+            (offset_y + block_size) / height,
         ),
     ];
 
@@ -233,7 +242,7 @@ fn generate_chunk_mesh(
     meshes
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq)]
 enum BlockType {
     AIR,
     GRASS,
@@ -249,8 +258,14 @@ impl BlockType {
         }
     }
 }
+#[derive(PartialEq)]
+enum Quality {
+    FULL,
+    HALF,
+    QUARTER,
+    PIXEL,
+}
 
-#[derive(Debug)]
 struct Chunk {
     blocks: Vec<BlockType>,
 }
